@@ -3,287 +3,256 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>В ЧАС — расчёт цены твоего времени</title>
+<title>Казна Лордерона — цена часа</title>
 <style>
   /*
-    Silent Hill 2 — "Otherworld" income calculator.
-    Палитра вытащена из ржавой решётки Подземелья, тумана Тихого Холма
-    и сухой крови на стенах больницы Брукхейвен.
+    Павший Лордерон / Отрекшиеся.
+    Потускневшее королевское золото на чёрном камне, кость пергамента
+    и некротический чумной свет Подгорода. Палитра аптекаря Чумы.
   */
   :root{
-    --fog:        #c8c3b6;  /* выцветший туман */
-    --ash:        #8a8478;  /* пепельный текст */
-    --void:       #0a0908;  /* провал темноты */
-    --void-soft:  #14110f;  /* грязный чёрный */
-    --rust:       #6e4326;  /* ржавчина решётки */
-    --rust-lit:   #a8632f;  /* подсвеченная ржавчина */
-    --blood:      #6b1414;  /* запёкшаяся кровь */
-    --blood-lit:  #9c2222;  /* свежее пятно */
-    --bone:       #e7e2d6;  /* кость / бумага записки */
+    --crypt:     #0a0c09;  /* провал склепа */
+    --stone:     #13150f;  /* камень стены */
+    --stone-up:  #1b1d14;  /* подсвеченный камень */
+    --bone:      #d9cfb4;  /* кость / пергамент */
+    --bone-dim:  #8c876f;  /* выцветший пергамент */
+    --gold:      #7f6326;  /* потускневшее золото */
+    --gold-lit:  #c6a352;  /* блик короны */
+    --blight:    #7bbf2e;  /* чумная зелень */
+    --blight-lit:#aef25a;  /* свечение язвы */
+    --rot:       #2a3318;  /* мшистый тлен */
+    --royal:     #3a2348;  /* королевский пурпур, выцветший */
   }
 
   *{ box-sizing:border-box; margin:0; padding:0; }
-
   html,body{ height:100%; }
 
   body{
     min-height:100%;
     background:
-      radial-gradient(120% 90% at 50% -10%, #1c1815 0%, var(--void) 60%, #000 100%);
-    color:var(--fog);
-    font-family:"Georgia","Times New Roman",serif;
-    letter-spacing:.01em;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+      radial-gradient(130% 80% at 50% 118%, rgba(123,191,46,.10), transparent 55%),
+      radial-gradient(120% 90% at 50% -15%, #1d2014 0%, var(--crypt) 62%, #000 100%);
+    color:var(--bone);
+    font-family:"Palatino Linotype","Book Antiqua",Palatino,"Georgia",serif;
+    display:flex; align-items:center; justify-content:center;
     padding:6vh 5vw;
-    overflow-x:hidden;
-    position:relative;
+    position:relative; overflow-x:hidden;
   }
 
-  /* зернистый шум — телевизионная рябь приёмника */
+  /* поднимающиеся чумные споры */
+  .spore{
+    position:fixed; bottom:-12px; z-index:2;
+    width:3px; height:3px; border-radius:50%;
+    background:var(--blight-lit);
+    box-shadow:0 0 6px 1px rgba(174,242,90,.7);
+    opacity:0; pointer-events:none;
+    animation:rise linear infinite;
+  }
+  @keyframes rise{
+    0%{ transform:translateY(0) translateX(0); opacity:0; }
+    12%{ opacity:.55; }
+    80%{ opacity:.35; }
+    100%{ transform:translateY(-104vh) translateX(var(--sx,10px)); opacity:0; }
+  }
+
+  /* лёгкая каменная зернистость */
   body::before{
-    content:"";
-    position:fixed;
-    inset:-50%;
-    pointer-events:none;
-    z-index:5;
-    opacity:.05;
-    mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-    animation:grain .4s steps(3) infinite;
-  }
-  @keyframes grain{
-    0%{transform:translate(0,0)} 33%{transform:translate(-2%,1%)} 66%{transform:translate(1%,-2%)} 100%{transform:translate(0,0)}
+    content:""; position:fixed; inset:0; z-index:1; pointer-events:none;
+    opacity:.045; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
 
-  /* ползущий туман поверх всего */
-  body::after{
-    content:"";
-    position:fixed;
-    inset:0;
-    pointer-events:none;
-    z-index:4;
+  .decree{
+    position:relative; z-index:3;
+    width:100%; max-width:560px;
     background:
-      radial-gradient(60% 50% at 20% 30%, rgba(200,195,182,.06), transparent 70%),
-      radial-gradient(50% 60% at 85% 75%, rgba(200,195,182,.05), transparent 70%);
-    animation:drift 26s ease-in-out infinite alternate;
-  }
-  @keyframes drift{
-    from{transform:translate(-3%,0) scale(1.05)} to{transform:translate(4%,2%) scale(1.12)}
-  }
-
-  .frame{
-    position:relative;
-    z-index:6;
-    width:100%;
-    max-width:540px;
-    background:linear-gradient(180deg, var(--void-soft), #0c0a09 90%);
-    border:1px solid #2a231d;
+      linear-gradient(180deg, var(--stone-up), var(--stone) 55%, #0d0f0a 100%);
+    border:1px solid #2c2a1c;
+    padding:clamp(30px,6.5vw,58px) clamp(26px,6vw,56px) clamp(34px,6vw,56px);
     box-shadow:
       0 0 0 1px #000 inset,
-      0 30px 80px -20px #000,
-      0 0 120px -40px var(--rust);
-    padding:clamp(28px,6vw,52px);
+      0 0 0 6px #0a0c09,
+      0 0 0 7px #2c2a1c,
+      0 40px 90px -25px #000,
+      0 0 160px -50px rgba(123,191,46,.4);
   }
-
-  /* ржавая верхняя кромка — намёк на решётку Otherworld */
-  .frame::before{
-    content:"";
-    position:absolute; left:0; right:0; top:0; height:3px;
-    background:repeating-linear-gradient(90deg,
-      var(--rust) 0 6px, transparent 6px 11px, var(--rust-lit) 11px 13px, transparent 13px 20px);
-    opacity:.7;
+  /* золочёные уголки королевского указа */
+  .decree::before, .decree::after{
+    content:""; position:absolute; width:26px; height:26px; pointer-events:none;
+    border:2px solid var(--gold); opacity:.8;
   }
+  .decree::before{ top:12px; left:12px; border-right:none; border-bottom:none; }
+  .decree::after{ bottom:12px; right:12px; border-left:none; border-top:none; }
 
-  .eyebrow{
+  .crest{
     font-family:"Courier New",monospace;
-    font-size:.7rem;
-    letter-spacing:.5em;
-    text-transform:uppercase;
-    color:var(--rust-lit);
-    padding-left:.5em;
-    margin-bottom:1.4em;
-    opacity:.85;
+    font-size:.66rem; letter-spacing:.46em; text-transform:uppercase;
+    color:var(--gold-lit); padding-left:.5em; margin-bottom:1.5em;
+    display:flex; align-items:center; gap:1em;
   }
+  .crest::after{ content:""; flex:1; height:1px;
+    background:linear-gradient(90deg, var(--gold), transparent); }
 
   h1{
-    font-size:clamp(2.6rem,11vw,4.4rem);
-    line-height:.92;
-    font-weight:400;
+    font-size:clamp(2.5rem,10vw,4.2rem);
+    line-height:.94; font-weight:400; letter-spacing:.02em;
     color:var(--bone);
-    letter-spacing:-.02em;
-    text-shadow:0 2px 0 #000, 0 0 30px rgba(0,0,0,.9);
-    margin-bottom:.15em;
+    /* выгравированное золото на камне */
+    text-shadow:
+      0 1px 0 #000, 0 2px 1px #000,
+      0 0 26px rgba(198,163,82,.25);
+    margin-bottom:.2em;
   }
-  h1 .pale{
-    display:block;
-    font-size:.32em;
-    letter-spacing:.45em;
-    color:var(--ash);
-    text-transform:uppercase;
-    margin-top:1.1em;
+  h1 .sub{
+    display:block; margin-top:.85em;
+    font-size:.26em; letter-spacing:.4em; text-transform:uppercase;
+    color:var(--gold); font-family:"Courier New",monospace;
     text-shadow:none;
   }
 
-  .note{
-    font-style:italic;
-    color:var(--ash);
-    font-size:.92rem;
-    line-height:1.6;
-    margin:1.6em 0 2.4em;
-    padding-left:1em;
-    border-left:1px solid var(--rust);
-    max-width:42ch;
+  .scripture{
+    font-style:italic; color:var(--bone-dim);
+    font-size:.96rem; line-height:1.65; max-width:44ch;
+    margin:1.7em 0 2.5em; padding-left:1.1em;
+    border-left:2px solid var(--gold);
   }
 
-  .field{ margin-bottom:1.7em; }
-
+  .field{ margin-bottom:1.8em; }
   label{
-    display:block;
-    font-family:"Courier New",monospace;
-    font-size:.72rem;
-    letter-spacing:.28em;
-    text-transform:uppercase;
-    color:var(--ash);
-    margin-bottom:.7em;
+    display:block; font-family:"Courier New",monospace;
+    font-size:.7rem; letter-spacing:.26em; text-transform:uppercase;
+    color:var(--bone-dim); margin-bottom:.75em;
   }
-
-  .input-wrap{ position:relative; }
-
+  .well{ position:relative; }
   input[type="text"]{
-    width:100%;
-    background:transparent;
-    border:none;
-    border-bottom:1px solid #3a312a;
-    color:var(--bone);
-    font-family:"Georgia",serif;
-    font-size:1.9rem;
-    padding:.2em 2.2em .25em 0;
-    outline:none;
+    width:100%; background:transparent; border:none;
+    border-bottom:1px solid #3b3826; color:var(--bone);
+    font-family:inherit; font-size:1.95rem;
+    padding:.15em 2.4em .25em 0; outline:none;
     transition:border-color .4s, color .4s;
   }
-  input::placeholder{ color:#4a423a; font-style:italic; font-size:.9rem; }
-  input:focus{ border-color:var(--rust-lit); color:#fff; }
-
-  .unit{
-    position:absolute; right:0; bottom:.45em;
-    font-family:"Courier New",monospace;
-    font-size:.8rem; color:var(--rust); letter-spacing:.15em;
+  input::placeholder{ color:#4a4733; font-style:italic; font-size:.82rem; }
+  input:focus{ border-color:var(--blight); color:#fff; }
+  .coin{
+    position:absolute; right:0; bottom:.5em;
+    font-family:"Courier New",monospace; font-size:.78rem;
+    color:var(--gold-lit); letter-spacing:.12em;
   }
-
-  /* подсветка-«фонарик» под активным полем */
-  .input-wrap::after{
+  .well::after{
     content:""; position:absolute; left:0; bottom:-1px; height:1px; width:0;
-    background:linear-gradient(90deg,var(--blood-lit),var(--rust-lit));
+    background:linear-gradient(90deg, var(--blight-lit), var(--gold-lit));
+    box-shadow:0 0 8px rgba(174,242,90,.6);
     transition:width .5s ease;
   }
-  .input-wrap:focus-within::after{ width:100%; }
+  .well:focus-within::after{ width:100%; }
 
   button{
-    width:100%;
-    margin-top:.6em;
-    background:transparent;
-    color:var(--bone);
-    border:1px solid var(--rust);
-    font-family:"Courier New",monospace;
-    font-size:.82rem;
-    letter-spacing:.38em;
-    text-transform:uppercase;
-    padding:1.25em;
-    cursor:pointer;
-    position:relative;
-    overflow:hidden;
-    transition:color .4s, border-color .4s, letter-spacing .4s;
+    width:100%; margin-top:.7em;
+    background:transparent; color:var(--gold-lit);
+    border:1px solid var(--gold);
+    font-family:"Courier New",monospace; font-size:.8rem;
+    letter-spacing:.36em; text-transform:uppercase;
+    padding:1.3em; cursor:pointer; position:relative; overflow:hidden;
+    transition:color .4s, border-color .4s, letter-spacing .4s, box-shadow .4s;
   }
   button::before{
     content:""; position:absolute; inset:0; z-index:-1;
-    background:linear-gradient(90deg,var(--blood),var(--rust));
-    transform:translateX(-101%);
-    transition:transform .5s ease;
+    background:linear-gradient(90deg, var(--rot), var(--blight));
+    transform:translateX(-101%); transition:transform .5s ease;
   }
-  button:hover{ color:#fff; border-color:var(--blood-lit); letter-spacing:.44em; }
+  button:hover{
+    color:#0a0c09; border-color:var(--blight-lit); letter-spacing:.42em;
+    box-shadow:0 0 30px -6px rgba(174,242,90,.5);
+  }
   button:hover::before{ transform:translateX(0); }
-  button:focus-visible{ outline:2px solid var(--rust-lit); outline-offset:3px; }
+  button:focus-visible{ outline:2px solid var(--blight-lit); outline-offset:3px; }
 
-  /* результат — проявляется из тумана */
   .verdict{
-    margin-top:2.6em;
-    padding-top:2em;
-    border-top:1px solid #2a231d;
-    opacity:0;
-    filter:blur(8px);
-    transform:translateY(10px);
+    margin-top:2.7em; padding-top:2.1em;
+    border-top:1px solid #2c2a1c; text-align:center;
+    opacity:0; filter:blur(7px); transform:translateY(10px);
     transition:opacity .9s ease, filter .9s ease, transform .9s ease;
   }
   .verdict.show{ opacity:1; filter:blur(0); transform:none; }
 
-  .verdict .lead{
-    font-family:"Courier New",monospace;
-    font-size:.7rem; letter-spacing:.4em; text-transform:uppercase;
-    color:var(--ash); margin-bottom:.5em;
+  /* печать-сигила над приговором */
+  .sigil{
+    width:42px; height:42px; margin:0 auto .9em;
+    border:1px solid var(--gold); border-radius:50%;
+    display:grid; place-items:center; position:relative;
+    color:var(--blight-lit); font-size:1.1rem;
+    box-shadow:0 0 18px -2px rgba(174,242,90,.5), inset 0 0 12px -4px rgba(174,242,90,.5);
+  }
+  .sigil::before{
+    content:""; position:absolute; inset:4px; border:1px solid #2c2a1c; border-radius:50%;
+  }
+  .verdict.show .sigil{ animation:pulse 3.2s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 14px -2px rgba(174,242,90,.4), inset 0 0 10px -4px rgba(174,242,90,.4);} 50%{ box-shadow:0 0 26px 0 rgba(174,242,90,.7), inset 0 0 16px -3px rgba(174,242,90,.7);} }
+
+  .lead{
+    font-family:"Courier New",monospace; font-size:.68rem;
+    letter-spacing:.38em; text-transform:uppercase;
+    color:var(--bone-dim); margin-bottom:.55em;
   }
   .rate{
-    font-size:clamp(3rem,16vw,5.5rem);
-    line-height:1; color:var(--bone); font-weight:400;
-    text-shadow:0 0 40px rgba(168,99,47,.25);
+    font-size:clamp(3rem,15vw,5.4rem); line-height:1; color:#eafad0;
+    text-shadow:0 0 36px rgba(174,242,90,.45), 0 2px 0 #000;
   }
-  .rate small{ font-size:.28em; color:var(--rust-lit); letter-spacing:.1em; margin-left:.3em; }
-
+  .rate small{ font-size:.26em; color:var(--gold-lit); letter-spacing:.1em; margin-left:.35em; text-shadow:none; }
   .epitaph{
-    margin-top:1.1em;
-    font-style:italic;
-    font-size:.95rem;
-    color:var(--ash);
-    line-height:1.55;
-    max-width:40ch;
+    margin-top:1.15em; font-style:italic; color:var(--bone-dim);
+    font-size:.98rem; line-height:1.6; max-width:42ch;
+    margin-left:auto; margin-right:auto;
   }
-
-  .verdict.error .rate{ color:var(--blood-lit); font-size:clamp(1.6rem,7vw,2.4rem); font-style:italic; }
-  .verdict.error .lead{ color:var(--blood-lit); }
+  .verdict.error .sigil{ color:#d98a8a; border-color:#5a2a2a; box-shadow:0 0 16px -3px rgba(180,60,60,.5); }
+  .verdict.error .rate{ font-size:clamp(1.5rem,6.5vw,2.3rem); color:#d98a8a; font-style:italic; text-shadow:0 2px 0 #000; }
+  .verdict.error .lead{ color:#9c5454; }
 
   @media (prefers-reduced-motion: reduce){
-    body::before, body::after{ animation:none; }
+    .spore{ display:none; }
     .verdict{ transition:opacity .3s; filter:none; transform:none; }
+    .verdict.show .sigil{ animation:none; }
   }
 </style>
 </head>
 <body>
-  <main class="frame">
-    <p class="eyebrow">Brookhaven · оценка времени</p>
-    <h1>В&nbsp;час
-      <span class="pale">сколько стоит твой час</span>
+  <main class="decree">
+    <p class="crest">Казна павшего Лордерона</p>
+
+    <h1>Цена часа
+      <span class="sub">сколько стоит твоё время</span>
     </h1>
 
-    <p class="note">
-      Здесь нет долгов и премий — только два числа. Сколько тебе платят и
-      сколько часов ты за это отдаёшь. Туман покажет, во что обходится час
-      твоей жизни.
+    <p class="scripture">
+      Королевство пало, но счёт остался. Назови, сколько тебе платят и
+      сколько часов ты отдаёшь взамен — и чумной свет покажет истинную
+      цену одного часа твоей жизни.
     </p>
 
     <form id="calc" novalidate>
       <div class="field">
-        <label for="salary">Зарплата за период</label>
-        <div class="input-wrap">
+        <label for="salary">Жалованье за период</label>
+        <div class="well">
           <input id="salary" type="text" inputmode="decimal"
                  placeholder="например, 80000" autocomplete="off" />
-          <span class="unit">₽</span>
+          <span class="coin">золотых</span>
         </div>
       </div>
 
       <div class="field">
-        <label for="hours">Отработанные часы за тот же период</label>
-        <div class="input-wrap">
+        <label for="hours">Часы службы за тот же период</label>
+        <div class="well">
           <input id="hours" type="text" inputmode="decimal"
                  placeholder="например, 160" autocomplete="off" />
-          <span class="unit">ЧАС</span>
+          <span class="coin">часов</span>
         </div>
       </div>
 
-      <button type="submit">Узнать цену часа</button>
+      <button type="submit">Огласить цену</button>
     </form>
 
     <section id="verdict" class="verdict" aria-live="polite">
+      <div class="sigil" aria-hidden="true">☠</div>
       <p class="lead">Цена одного часа</p>
       <p class="rate" id="rate">—</p>
       <p class="epitaph" id="epitaph"></p>
@@ -301,43 +270,31 @@
     var rateEl  = document.getElementById("rate");
     var epitaph = document.getElementById("epitaph");
 
-    // парсим число, прощая пробелы и запятую вместо точки
     function num(raw){
       if(raw == null) return NaN;
-      var cleaned = String(raw).replace(/\s/g,"").replace(",",".");
-      if(cleaned === "") return NaN;
-      return Number(cleaned);
+      var c = String(raw).replace(/\s/g,"").replace(",",".");
+      if(c === "") return NaN;
+      return Number(c);
     }
-
     function money(v){
       return v.toLocaleString("ru-RU",{ minimumFractionDigits:2, maximumFractionDigits:2 });
     }
 
-    // строки в духе Тихого Холма — зависят от того, насколько дёшев час
+    // приговоры в духе Отрекшихся — тем мрачнее, чем дешевле час
     function epitaphFor(rate){
-      if(rate < 100)  return "Туман густой. За такие деньги его и не разглядеть.";
-      if(rate < 300)  return "Часы уходят в темноту по одному. Ты их почти не замечаешь.";
-      if(rate < 700)  return "Каждый час чего-то стоит. Вопрос — стоишь ли ты его себе.";
-      if(rate < 1500) return "Дорога. Но и плата за неё под стать.";
-      return "Время здесь ценят. Постарайся не потратить его впустую.";
+      if(rate < 100)  return "За такую плату даже мёртвые не встанут с колен.";
+      if(rate < 300)  return "Часы утекают, как песок сквозь костяные пальцы.";
+      if(rate < 700)  return "Достойно живого. Покуда ты ещё дышишь.";
+      if(rate < 1500) return "Король одобрил бы такую казну.";
+      return "Даже Тёмная Госпожа оценила бы твою цену.";
     }
 
-    function fail(msg){
-      verdict.classList.add("error");
+    function render(cls, headHTML, body){
+      verdict.classList.toggle("error", cls === "error");
       verdict.classList.remove("show");
-      // перезапуск анимации проявления
-      void verdict.offsetWidth;
-      rateEl.textContent = msg;
-      epitaph.textContent = "";
-      verdict.classList.add("show");
-    }
-
-    function show(rate){
-      verdict.classList.remove("error");
-      verdict.classList.remove("show");
-      void verdict.offsetWidth;
-      rateEl.innerHTML = money(rate) + ' <small>₽ / час</small>';
-      epitaph.textContent = epitaphFor(rate);
+      void verdict.offsetWidth;          // перезапуск проявления
+      rateEl.innerHTML = headHTML;
+      epitaph.textContent = body || "";
       verdict.classList.add("show");
     }
 
@@ -346,17 +303,31 @@
       var s = num(salaryI.value);
       var h = num(hoursI.value);
 
-      if(isNaN(s) || isNaN(h)){
-        fail("Назови оба числа."); return;
-      }
-      if(s < 0 || h < 0){
-        fail("Отрицательного времени не бывает."); return;
-      }
-      if(h === 0){
-        fail("Ноль часов — ноль ответа."); return;
-      }
-      show(s / h);
+      if(isNaN(s) || isNaN(h)) return render("error", "Назови оба числа.");
+      if(s < 0 || h < 0)       return render("error", "Отрицательного времени не бывает.");
+      if(h === 0)              return render("error", "Ноль часов — ноль ответа.");
+
+      var rate = s / h;
+      render("ok", money(rate) + ' <small>зол. / час</small>', epitaphFor(rate));
     });
+  })();
+
+  // рассыпаем чумные споры
+  (function(){
+    if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var n = 18;
+    for(var i=0;i<n;i++){
+      var s = document.createElement("span");
+      s.className = "spore";
+      s.style.left = (Math.random()*100) + "vw";
+      s.style.setProperty("--sx", (Math.random()*60-30) + "px");
+      var dur = 9 + Math.random()*11;
+      s.style.animationDuration = dur + "s";
+      s.style.animationDelay = (-Math.random()*dur) + "s";
+      var sz = 2 + Math.random()*2.5;
+      s.style.width = s.style.height = sz + "px";
+      document.body.appendChild(s);
+    }
   })();
 </script>
 </body>
