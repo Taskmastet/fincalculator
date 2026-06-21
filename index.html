@@ -95,7 +95,7 @@ body{
 /* передний план — ветви перед сценой, расфокус */
 .foreground{
   position:fixed; inset:-8% -6%; z-index:6; pointer-events:none;
-  filter:blur(3px); opacity:.92;
+  filter:blur(6px); opacity:.32;
   transform:translate3d(var(--tx,0),var(--ty,0),0); will-change:transform;
 }
 .foreground svg{ position:absolute; inset:0; width:100%; height:100%; }
@@ -575,12 +575,12 @@ h1{
     var g=el("g",{stroke:"#050609", fill:"none", "stroke-linecap":"round"});
     // ветвь из верхнего-левого угла
     var a={segs:[]};
-    branch(a, -20, -20, 280, rnd(.35,.55), 1, 5);
+    branch(a, -30, -30, 190, rnd(.3,.5), 1, 4);
     // ветвь из нижнего-правого угла
     var b={segs:[]};
-    branch(b, 1220, 820, 300, -Math.PI+rnd(.35,.55), 1, 5);
+    branch(b, 1230, 830, 200, -Math.PI+rnd(.3,.5), 1, 4);
     [a,b].forEach(function(d,i){
-      g.appendChild(el("path",{d:d.segs.join(" "), "stroke-width": i? 7:6, opacity:.95}));
+      g.appendChild(el("path",{d:d.segs.join(" "), "stroke-width": i? 5:4, opacity:.9}));
     });
     svg.appendChild(g); host.appendChild(svg);
   })();
@@ -695,7 +695,7 @@ h1{
   var stele=document.getElementById("stele");
 
   function num(r){ if(r==null) return NaN; var c=String(r).replace(/\s/g,"").replace(",","."); return c===""?NaN:Number(c); }
-  function money(v){ return v.toLocaleString("ru-RU",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function money(v){ return v.toLocaleString("ru-RU",{maximumFractionDigits:2}); }
   function epitaphFor(r){
     if(r<100)  return "За такую плату даже мёртвые не встанут с колен.";
     if(r<300)  return "Часы утекают, как песок сквозь костяные пальцы.";
