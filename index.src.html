@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0a0a0c" />
+<title>Цена часа — казначейство павшего Лордерона</title>
+<style>
+/*__FONTS__*/
+
+/* =========================================================
+   ПАЛИТРА — Тирисфальские пустоши, руины Лордерона.
+   Сухая кровь неба, болезненный зелёный горизонт, кость,
+   потускневшее геральдическое золото, некротический свет.
+========================================================= */
+:root{
+  --ink:        #07070a;
+  --sky-top:    #140a10;
+  --sky-mid:    #2e1418;
+  --sky-blood:  #5a2418;
+  --sky-glow:   #7c5a22;
+  --sky-sick:   #4d5a2a;   /* зеленоватая муть у горизонта */
+  --fog:        #8a8f72;
+  --silhouette: #090a0c;
+  --bone:       #ddd3ba;
+  --bone-dim:   #968f76;
+  --stone:      #15161a;
+  --stone-up:   #20212630;
+  --gold:       #b08a3e;
+  --gold-lit:   #e1c074;
+  --gold-deep:  #5f4719;
+  --blight:     #9ace4a;
+  --blight-lit: #cdf07a;
+  --rust:       #7a3a1e;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ height:100%; }
+body{
+  background:var(--ink);
+  color:var(--bone);
+  font-family:"Lora","Georgia",serif;
+  overflow:hidden;
+  position:relative;
+}
+
+/* =========================== МИР =========================== */
+.world{ position:fixed; inset:-8% -6%; z-index:0; will-change:transform; }
+.layer{
+  position:absolute; inset:0;
+  will-change:transform;
+  transform:translate3d(var(--tx,0),var(--ty,0),0);
+}
+.layer svg{ display:block; width:100%; height:100%; }
+
+/* небо */
+.sky{
+  background:
+    radial-gradient(120% 70% at 64% 86%, rgba(124,90,34,.55), transparent 46%),
+    radial-gradient(140% 64% at 40% 98%, rgba(108,128,48,.42), transparent 56%),
+    radial-gradient(90% 50% at 64% 99%, rgba(77,90,42,.5), transparent 60%),
+    linear-gradient(180deg,
+      var(--sky-top) 0%, #1d101c 24%,
+      var(--sky-mid) 50%, var(--sky-blood) 76%, #34160e 100%);
+}
+/* кровавое солнце низко над пустошью */
+.sun{
+  position:absolute; left:60%; top:62%;
+  width:min(34vw,420px); aspect-ratio:1; border-radius:50%;
+  background:
+    radial-gradient(circle, rgba(231,192,116,.95) 0%, rgba(176,138,62,.55) 24%,
+      rgba(122,58,30,.30) 46%, transparent 70%);
+  transform:translate(-50%,-50%);
+  filter:blur(2px);
+  mix-blend-mode:screen;
+}
+.sun::after{
+  content:""; position:absolute; left:50%; top:50%;
+  width:36%; aspect-ratio:1; border-radius:50%; transform:translate(-50%,-50%);
+  background:radial-gradient(circle,#f1dca0 0%, #c79a4e 60%, transparent 75%);
+}
+
+/* туман — мягкие полосы */
+.fog{ pointer-events:none; mix-blend-mode:screen; opacity:.5; }
+.fog .band{ animation:drift linear infinite; }
+@keyframes drift{ from{transform:translateX(-12%);} to{transform:translateX(12%);} }
+
+/* земля */
+.ground{ }
+.vignette{
+  position:absolute; inset:0; pointer-events:none; z-index:6;
+  background:
+    radial-gradient(130% 110% at 50% 42%, transparent 52%, rgba(0,0,0,.5) 82%, rgba(0,0,0,.86) 100%);
+}
+/* передний план — ветви перед сценой, расфокус */
+.foreground{
+  position:fixed; inset:-8% -6%; z-index:6; pointer-events:none;
+  filter:blur(3px); opacity:.92;
+  transform:translate3d(var(--tx,0),var(--ty,0),0); will-change:transform;
+}
+.foreground svg{ position:absolute; inset:0; width:100%; height:100%; }
+
+/* зерно плёнки — финальный, очень тонкий слой */
+.grain{
+  position:fixed; inset:-50%; z-index:7; pointer-events:none;
+  opacity:.05; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  animation:grainshift .5s steps(2) infinite;
+}
+@keyframes grainshift{ 0%{transform:translate(0,0)} 50%{transform:translate(-1.5%,1%)} 100%{transform:translate(1%,-1.5%)} }
+
+/* падающие листья / угли */
+.mote{
+  position:absolute; top:-5%;
+  color:var(--rust);
+  opacity:0; will-change:transform;
+  animation:fall linear infinite;
+}
+@keyframes fall{
+  0%{ transform:translate(0,-5vh) rotate(0deg); opacity:0; }
+  10%{ opacity:.7; }
+  90%{ opacity:.5; }
+  100%{ transform:translate(var(--drift,4vw),108vh) rotate(540deg); opacity:0; }
+}
+
+/* вороны */
+.crow{ position:absolute; transform-origin:center; color:var(--silhouette); }
+.crow .wing{ transform-box:fill-box; transform-origin:center; }
+.crow.flap .wing-l{ animation:flapL .42s ease-in-out infinite; }
+.crow.flap .wing-r{ animation:flapR .42s ease-in-out infinite; }
+@keyframes flapL{ 0%,100%{ transform:rotate(8deg);} 50%{ transform:rotate(-26deg);} }
+@keyframes flapR{ 0%,100%{ transform:rotate(-8deg);} 50%{ transform:rotate(26deg);} }
+.crow.flee{ animation:flee 2.6s cubic-bezier(.3,.1,.4,1) forwards; }
+@keyframes flee{
+  0%{ transform:translate(0,0) scale(1); opacity:1; }
+  100%{ transform:translate(var(--fx,40vw),-70vh) scale(.5); opacity:0; }
+}
+
+/* =========================== СТЕЛА (UI) =========================== */
+.stage{
+  position:relative; z-index:5; min-height:100svh;
+  display:flex; align-items:center; justify-content:center;
+  padding:5svh 5vw;
+}
+.stele{
+  position:relative; width:100%; max-width:480px;
+  padding:clamp(24px,3.4vw,38px) clamp(26px,4vw,44px) clamp(26px,3.4vw,38px);
+  background:
+    linear-gradient(180deg, rgba(32,33,40,.78), rgba(11,12,16,.86)),
+    radial-gradient(120% 80% at 50% 0%, rgba(120,90,40,.12), transparent 60%);
+  border:1px solid rgba(176,138,62,.22);
+  border-radius:3px 3px 2px 2px;
+  backdrop-filter:blur(3px) saturate(.9);
+  -webkit-backdrop-filter:blur(3px) saturate(.9);
+  box-shadow:
+    inset 0 1px 0 rgba(225,192,116,.10),
+    inset 0 0 60px rgba(0,0,0,.6),
+    0 30px 70px -24px #000,
+    0 0 120px -40px rgba(154,206,74,.35);
+}
+/* высеченная рамка */
+.stele::before{
+  content:""; position:absolute; inset:9px; pointer-events:none;
+  border:1px solid rgba(176,138,62,.16);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.4);
+}
+/* свет «факела» при оглашении */
+.flare{
+  position:absolute; inset:-2px; pointer-events:none; opacity:0; border-radius:inherit;
+  background:radial-gradient(80% 60% at 50% 78%, rgba(205,240,122,.5), transparent 62%);
+  mix-blend-mode:screen; transition:opacity .1s;
+}
+.stele.cast .flare{ animation:flare 2.4s ease-out; }
+@keyframes flare{ 0%{opacity:0;} 12%{opacity:1;} 100%{opacity:0;} }
+
+/* герб */
+.crest{ display:flex; flex-direction:column; align-items:center; margin-bottom:.9em; }
+.crest svg{ width:40px; height:40px; color:var(--gold); filter:drop-shadow(0 1px 0 #000); }
+.crest .realm{
+  margin-top:.7em; font-family:"Forum",serif;
+  font-size:.7rem; letter-spacing:.56em; text-indent:.56em;
+  text-transform:uppercase; color:var(--gold-lit); opacity:.92;
+}
+
+h1{
+  font-family:"Forum",serif; font-weight:400; text-align:center;
+  font-size:clamp(2.7rem,7.5vw,4rem); line-height:.98; letter-spacing:.01em;
+  color:#cfc6ad;
+  /* выгравировано в камне */
+  text-shadow:
+    0 1px 0 rgba(225,200,150,.10),
+    0 -1px 1px rgba(0,0,0,.8),
+    0 2px 2px rgba(0,0,0,.7);
+}
+.tagline{
+  text-align:center; font-style:italic; color:var(--bone-dim);
+  font-size:.92rem; line-height:1.5; margin:.85em auto 0; max-width:34ch;
+}
+.rule{
+  width:100%; height:13px; margin:1.25em 0 1.4em;
+  color:var(--gold);
+  background:none;
+}
+.rule svg{ display:block; width:100%; height:100%; opacity:.7; }
+
+.field{ margin-bottom:1.25em; }
+.field label{
+  display:block; font-family:"Forum",serif;
+  font-size:.82rem; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--bone-dim); margin-bottom:.4em;
+}
+.well{ position:relative; display:flex; align-items:baseline; gap:.5em;
+  border-bottom:1px solid rgba(176,138,62,.30); }
+.well input{
+  flex:1; min-width:0; background:transparent; border:none;
+  color:var(--bone); font-family:"Forum",serif; font-size:1.75rem;
+  padding:.05em 0 .18em; outline:none;
+  transition:color .4s;
+}
+.well input::placeholder{ color:#4d4a3b; font-family:"Lora",serif; font-style:italic; font-size:.78rem; }
+.well .coin{
+  font-family:"Forum",serif; font-size:.82rem; letter-spacing:.1em;
+  color:var(--gold); white-space:nowrap; padding-bottom:.4em;
+}
+.well::after{
+  content:""; position:absolute; left:0; bottom:-1px; height:2px; width:0;
+  background:linear-gradient(90deg, var(--blight-lit), var(--gold-lit));
+  box-shadow:0 0 10px rgba(205,240,122,.7);
+  transition:width .55s cubic-bezier(.2,.7,.2,1);
+}
+.well:focus-within{ border-bottom-color:transparent; }
+.well:focus-within::after{ width:100%; }
+.well:focus-within input{ color:#fff; }
+
+.cast-btn{
+  width:100%; margin-top:.5em; position:relative; overflow:hidden;
+  background:linear-gradient(180deg, rgba(40,34,18,.5), rgba(18,16,10,.5));
+  color:var(--gold-lit); border:1px solid var(--gold);
+  font-family:"Forum",serif; font-size:1rem; letter-spacing:.34em; text-indent:.34em;
+  text-transform:uppercase; padding:1.15em 1em; cursor:pointer;
+  transition:color .45s, border-color .45s, letter-spacing .45s, box-shadow .45s;
+}
+.cast-btn span{ position:relative; z-index:1; }
+.cast-btn::before{
+  content:""; position:absolute; inset:0; z-index:0;
+  background:linear-gradient(90deg, var(--gold-deep), var(--blight));
+  transform:translateX(-101%); transition:transform .55s ease;
+}
+.cast-btn:hover{ color:#0a0a0c; border-color:var(--blight-lit);
+  letter-spacing:.4em; text-indent:.4em; box-shadow:0 0 34px -8px rgba(205,240,122,.6); }
+.cast-btn:hover::before{ transform:translateX(0); }
+.cast-btn:active{ transform:translateY(1px); }
+.cast-btn:focus-visible{ outline:2px solid var(--blight-lit); outline-offset:3px; }
+
+/* приговор */
+.verdict{
+  margin-top:1.5em; padding-top:1.4em; text-align:center;
+  border-top:1px solid rgba(176,138,62,.18);
+  opacity:0; transform:translateY(8px);
+  transition:opacity .7s ease, transform .7s ease;
+}
+.verdict.show{ opacity:1; transform:none; }
+.verdict .lead{
+  font-family:"Forum",serif; font-size:.8rem; letter-spacing:.34em;
+  text-indent:.34em; text-transform:uppercase; color:var(--bone-dim); margin-bottom:.45em;
+}
+.rate{
+  font-family:"Forum",serif; line-height:1;
+  font-size:clamp(3.2rem,15vw,5.6rem); color:#eef7d6;
+}
+.rate .num{
+  background:linear-gradient(180deg,#f3ffd6,#cdf07a 55%,#8fae4a);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:0 0 38px rgba(205,240,122,.5);
+}
+.rate .unit{
+  display:block; margin-top:.5em; font-size:.2em; letter-spacing:.28em;
+  text-indent:.28em; color:var(--gold-lit);
+}
+.epitaph{
+  margin:1.2em auto 0; font-style:italic; color:var(--bone-dim);
+  font-size:1rem; line-height:1.6; max-width:36ch;
+}
+.verdict.bad .lead{ color:#9c5a54; }
+.verdict.bad .rate{ font-size:clamp(1.5rem,6vw,2.2rem); }
+.verdict.bad .num{
+  background:none; -webkit-background-clip:initial; background-clip:initial;
+  color:#d79a8e; text-shadow:0 1px 0 #000; font-style:italic;
+}
+.verdict.bad .unit{ display:none; }
+
+/* руна звука */
+.rune{
+  position:fixed; right:18px; bottom:18px; z-index:8;
+  width:46px; height:46px; border-radius:50%;
+  display:grid; place-items:center; cursor:pointer;
+  background:rgba(11,12,16,.6); color:var(--gold);
+  border:1px solid rgba(176,138,62,.4);
+  backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  transition:color .3s, border-color .3s, box-shadow .3s;
+}
+.rune:hover{ color:var(--blight-lit); border-color:var(--blight); }
+.rune.on{ color:var(--blight-lit); border-color:var(--blight);
+  box-shadow:0 0 22px -4px rgba(205,240,122,.6); }
+.rune svg{ width:20px; height:20px; }
+.rune .off-x{ display:none; }
+.rune.on .off-x{ display:block; }
+
+@media (max-width:560px){
+  .stele{ backdrop-filter:none; -webkit-backdrop-filter:none; background:
+    linear-gradient(180deg, rgba(22,23,28,.94), rgba(9,10,14,.97)); }
+  /* ветви не должны мешать форме на узком экране */
+  .foreground{ opacity:.28; filter:blur(5px); }
+}
+
+/* доступность: тишина и покой по требованию */
+@media (prefers-reduced-motion: reduce){
+  .fog .band, .grain, .mote, .crow.flap .wing-l, .crow.flap .wing-r,
+  .stele.cast .flare{ animation:none !important; }
+  .mote{ display:none; }
+  .verdict{ transition:opacity .3s; transform:none; }
+}
+</style>
+</head>
+<body>
+  <!-- ======================= МИР ======================= -->
+  <div class="world" id="world">
+    <div class="layer sky"   data-depth="3"></div>
+    <div class="sun layer"   data-depth="6"></div>
+    <div class="layer ruins" data-depth="10"></div>
+    <div class="layer fog fog-far" data-depth="14"></div>
+    <div class="layer trees-far" data-depth="20"></div>
+    <div class="layer trees-mid" data-depth="34"></div>
+    <div class="layer fog fog-near" data-depth="26"></div>
+    <div class="layer crows" data-depth="40"></div>
+    <div class="layer ground" data-depth="48"></div>
+    <div class="layer leaves" data-depth="60"></div>
+    <div class="vignette"></div>
+  </div>
+  <!-- передний план: ветви не в фокусе, перед стелой -->
+  <div class="foreground" id="foreground"></div>
+  <div class="grain"></div>
+
+  <!-- ======================= СТЕЛА ======================= -->
+  <div class="stage">
+    <main class="stele" id="stele">
+      <div class="flare"></div>
+
+      <div class="crest">
+        <!-- расколотая корона над L — павшее королевство -->
+        <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <path d="M10 40 L8 20 L20 30 L32 12 L44 30 L56 20 L54 40 Z"
+                fill="currentColor" opacity=".9"/>
+          <path d="M10 40 L54 40 L52 47 L12 47 Z" fill="currentColor"/>
+          <path d="M31 12 L33 12 L34 6 L30 6 Z" fill="currentColor"/>
+          <rect x="29" y="33" width="2.4" height="9" fill="#07070a" opacity=".5"
+                transform="rotate(12 30 37)"/>
+          <text x="32" y="60" text-anchor="middle"
+                font-family="Forum, serif" font-size="13" letter-spacing="2"
+                fill="currentColor">L</text>
+        </svg>
+        <p class="realm">Лордерон · Тирисфаль</p>
+      </div>
+
+      <h1>Цена часа</h1>
+      <p class="tagline">Королевство пало, но счёт остался.<br>
+        Назови плату и часы — пустошь рассудит, чего стоит твой час.</p>
+
+      <div class="rule" aria-hidden="true">
+        <svg viewBox="0 0 200 14" preserveAspectRatio="none">
+          <path d="M0 7 H78 M122 7 H200" stroke="currentColor" stroke-width="1"/>
+          <path d="M100 1 L107 7 L100 13 L93 7 Z" fill="currentColor"/>
+          <path d="M84 7 L92 4.5 M84 7 L92 9.5 M116 7 L108 4.5 M116 7 L108 9.5"
+                stroke="currentColor" stroke-width="1"/>
+        </svg>
+      </div>
+
+      <form id="calc" novalidate>
+        <div class="field">
+          <label for="salary">Жалованье за период</label>
+          <div class="well">
+            <input id="salary" type="text" inputmode="decimal"
+                   placeholder="например, 80000" autocomplete="off" />
+            <span class="coin">золотых</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="hours">Часы службы за тот же период</label>
+          <div class="well">
+            <input id="hours" type="text" inputmode="decimal"
+                   placeholder="например, 160" autocomplete="off" />
+            <span class="coin">часов</span>
+          </div>
+        </div>
+        <button class="cast-btn" type="submit"><span>Взвесить час</span></button>
+      </form>
+
+      <section class="verdict" id="verdict" aria-live="polite">
+        <p class="lead">Цена одного часа</p>
+        <p class="rate" id="rate"><span class="num">—</span></p>
+        <p class="epitaph" id="epitaph"></p>
+      </section>
+    </main>
+  </div>
+
+  <!-- руна звука -->
+  <button class="rune" id="rune" aria-label="Звук пустоши" title="Звук пустоши">
+    <svg class="on-wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <path d="M4 9 H7 L11 5 V19 L7 15 H4 Z" fill="currentColor" stroke="none"/>
+      <path d="M15 9 Q17 12 15 15 M17.5 7 Q21 12 17.5 17"/>
+    </svg>
+    <svg class="off-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <path d="M4 9 H7 L11 5 V19 L7 15 H4 Z" fill="currentColor" stroke="none"/>
+      <path d="M15 9 L21 15 M21 9 L15 15"/>
+    </svg>
+  </button>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs){
+    var e = document.createElementNS(SVGNS, tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+
+  /* ---------- РУИНЫ КАПИТАЛ-СИТИ (дальний силуэт) ---------- */
+  (function ruins(){
+    var host = document.querySelector(".ruins");
+    var svg = el("svg",{viewBox:"0 0 1000 600", preserveAspectRatio:"xMidYMax slice"});
+    var g = el("g",{fill:"var(--silhouette)"});
+    // группа сломанных готических шпилей у горизонта (~y 360)
+    function spire(x, w, h, broken){
+      var base = 372;
+      var p = "M"+x+" "+base+" L"+x+" "+(base-h+ (broken?rnd(8,26):0));
+      // зубчатый излом вершины
+      if(broken){
+        p += " l"+(w*0.2)+" "+rnd(6,16)+" l"+(w*0.2)+" "+(-rnd(8,18));
+        p += " l"+(w*0.2)+" "+rnd(4,14)+" l"+(w*0.2)+" "+(-rnd(6,16));
+      } else {
+        p += " l"+(w/2)+" "+(-rnd(26,46))+" l"+(w/2)+" "+rnd(26,46);
+      }
+      p += " L"+(x+w)+" "+base+" Z";
+      g.appendChild(el("path",{d:p, opacity:rnd(.82,1).toFixed(2)}));
+      // тёмные арочные окна
+      if(w>26 && Math.random()<.8){
+        var wy = base-18;
+        g.appendChild(el("rect",{x:(x+w/2-3), y:(wy-h*0.5), width:6, height:14, rx:3, fill:"#1a0e0c", opacity:.6}));
+      }
+    }
+    var x=110;
+    while(x<880){
+      // ближе к центру — выше (силуэт разрушенного города)
+      var center = 1 - Math.abs((x+40)-500)/440;
+      var w = rnd(24,70), h = rnd(60,150) + center*center*150, broken = Math.random()<.62;
+      spire(x, w, h, broken);
+      x += w + rnd(-4,22);
+    }
+    // доминанта — расколотый собор Капитал-Сити
+    (function cathedral(){
+      var cx=470, base=372;
+      // массив корпуса
+      g.appendChild(el("path",{d:"M"+cx+" "+base+" L"+cx+" "+(base-150)+" L"+(cx+60)+" "+(base-150)+" L"+(cx+60)+" "+base+" Z"}));
+      // расколотая центральная башня
+      g.appendChild(el("path",{d:"M"+(cx+18)+" "+(base-150)+" L"+(cx+20)+" "+(base-300)+" l10 -34 l6 26 l8 -16 l4 64 L"+(cx+42)+" "+(base-150)+" Z"}));
+      // боковая башня пониже, тоже сломана
+      g.appendChild(el("path",{d:"M"+(cx-34)+" "+base+" L"+(cx-32)+" "+(base-205)+" l8 -20 l6 16 l6 -10 l3 219 Z"}));
+      // готические окна-провалы
+      [[cx+24,base-120,8,30],[cx+24,base-78,8,26],[cx-22,base-150,7,24]].forEach(function(wn){
+        g.appendChild(el("path",{d:"M"+wn[0]+" "+wn[1]+" h"+wn[2]+" v"+wn[3]+" h-"+wn[2]+" Z M"+wn[0]+" "+wn[1]+" q"+(wn[2]/2)+" -"+(wn[2])+" "+wn[2]+" 0",
+          fill:"#160c0c", opacity:.7}));
+      });
+    })();
+    // глухая стена-основание
+    g.appendChild(el("rect",{x:70, y:368, width:860, height:60, fill:"var(--silhouette)"}));
+    svg.appendChild(g);
+    host.appendChild(svg);
+    host.style.opacity = ".96";
+  })();
+
+  /* ---------- ТУМАН ---------- */
+  function fogLayer(sel, y, op, scale, dur){
+    var host = document.querySelector(sel);
+    var svg = el("svg",{viewBox:"0 0 1200 400", preserveAspectRatio:"xMidYMid slice"});
+    var g = el("g",{class:"band", fill:"var(--fog)", style:"animation-duration:"+dur+"s"});
+    for(var i=0;i<7;i++){
+      var cx=rnd(-100,1300), cy=y+rnd(-30,30), rx=rnd(180,360), ry=rnd(40,80);
+      g.appendChild(el("ellipse",{cx:cx,cy:cy,rx:rx,ry:ry, opacity:rnd(.15,.4).toFixed(2)}));
+    }
+    svg.appendChild(g); host.appendChild(svg);
+    host.style.opacity = op;
+    host.style.filter = "blur("+scale+"px)";
+  }
+  fogLayer(".fog-far", 250, ".45", 6, 90);
+  fogLayer(".fog-near", 330, ".6", 10, 60);
+
+  /* ---------- ДЕРЕВЬЯ (голые, кривые) ---------- */
+  function branch(d, x, y, len, ang, w, depth){
+    if(depth<=0 || len<6) return;
+    var x2 = x + Math.cos(ang)*len, y2 = y + Math.sin(ang)*len;
+    // лёгкий изгиб через quadratic
+    var mx = (x+x2)/2 + Math.cos(ang+Math.PI/2)*rnd(-len*.16,len*.16);
+    var my = (y+y2)/2 + Math.sin(ang+Math.PI/2)*rnd(-len*.16,len*.16);
+    d.segs.push("M"+x.toFixed(1)+" "+y.toFixed(1)+" Q"+mx.toFixed(1)+" "+my.toFixed(1)+" "+x2.toFixed(1)+" "+y2.toFixed(1));
+    var n = Math.random()<.5?2:3;
+    for(var i=0;i<n;i++){
+      branch(d, x2, y2, len*rnd(.62,.8), ang - rnd(.2,.95) + (i/(n-1))*rnd(.4,1.6), w*.7, depth-1);
+    }
+  }
+  function makeTree(x, base, h, depth){
+    var d={segs:[]};
+    branch(d, x, base, h, -Math.PI/2 + rnd(-.12,.12), 1, depth);
+    return d.segs.join(" ");
+  }
+  function treeLayer(sel, count, hRange, depth, opacity, sw, color){
+    var host = document.querySelector(sel);
+    var svg = el("svg",{viewBox:"0 0 1200 500", preserveAspectRatio:"xMidYMax slice"});
+    var g = el("g",{stroke:color, fill:"none", "stroke-linecap":"round"});
+    for(var i=0;i<count;i++){
+      var x=rnd(20,1180), base=rnd(470,500), h=rnd(hRange[0],hRange[1]);
+      var p = el("path",{d:makeTree(x, base, h, depth), "stroke-width":sw, opacity:rnd(opacity*.7,opacity).toFixed(2)});
+      g.appendChild(p);
+    }
+    svg.appendChild(g); host.appendChild(svg);
+  }
+  treeLayer(".trees-far", 9, [70,140], 4, .4, 1.2, "#0b0c0e");
+  treeLayer(".trees-mid", 6, [160,300], 5, .95, 3, "var(--silhouette)");
+
+  /* ---------- ЗЕМЛЯ: холм, надгробия, ограда ---------- */
+  (function ground(){
+    var host = document.querySelector(".ground");
+    var svg = el("svg",{viewBox:"0 0 1200 500", preserveAspectRatio:"xMidYMax slice"});
+    // силуэт холма
+    var hill = el("path",{
+      d:"M0 360 C 220 320, 420 372, 640 352 C 860 332, 1020 380, 1200 350 L1200 500 L0 500 Z",
+      fill:"#0b0c0a"});
+    svg.appendChild(hill);
+    var g = el("g",{});
+    // кованая ограда (тонкие пики)
+    for(var fx=20; fx<1200; fx+=26){
+      var fy = 360 - (Math.sin(fx*0.004)*8);
+      g.appendChild(el("path",{d:"M"+fx+" "+(fy+6)+" L"+fx+" "+(fy-26), stroke:"#070809", "stroke-width":2}));
+      g.appendChild(el("circle",{cx:fx, cy:fy-30, r:2.4, fill:"#070809"}));
+    }
+    g.appendChild(el("rect",{x:0,y:356,width:1200,height:4, fill:"#070809"}));
+    // надгробия — разные формы, наклон, выветренность
+    var tomb = el("g",{fill:"#101110", stroke:"#000", "stroke-width":1});
+    function stone(x, y, s, type, rot){
+      var gg = el("g",{transform:"translate("+x+" "+y+") rotate("+rot+") scale("+s+")"});
+      if(type===0){ // округлая плита
+        gg.appendChild(el("path",{d:"M-16 0 L-16 -34 A16 16 0 0 1 16 -34 L16 0 Z"}));
+      } else if(type===1){ // крест
+        gg.appendChild(el("rect",{x:-5,y:-52,width:10,height:52}));
+        gg.appendChild(el("rect",{x:-18,y:-40,width:36,height:10}));
+      } else { // косая плита
+        gg.appendChild(el("path",{d:"M-15 0 L-13 -40 L15 -36 L14 0 Z"}));
+      }
+      gg.appendChild(el("ellipse",{cx:0,cy:2,rx:22,ry:5, fill:"#070809", stroke:"none", opacity:.7}));
+      tomb.appendChild(gg);
+    }
+    var positions=[[120,470,1.1],[230,486,1.5],[360,476,1.2],[520,492,1.8],
+      [690,478,1.3],[840,490,1.7],[980,476,1.25],[1090,486,1.5],[60,486,1.4],[430,484,1.0]];
+    positions.forEach(function(p){ stone(p[0],p[1],p[2], Math.floor(rnd(0,3)), rnd(-5,5)); });
+    svg.appendChild(g); svg.appendChild(tomb);
+    host.appendChild(svg);
+  })();
+
+  /* ---------- ПЕРЕДНИЙ ПЛАН (ветви перед стелой) ---------- */
+  (function foreground(){
+    var host=document.getElementById("foreground");
+    var svg=el("svg",{viewBox:"0 0 1200 800", preserveAspectRatio:"xMidYMid slice"});
+    var g=el("g",{stroke:"#050609", fill:"none", "stroke-linecap":"round"});
+    // ветвь из верхнего-левого угла
+    var a={segs:[]};
+    branch(a, -20, -20, 280, rnd(.35,.55), 1, 5);
+    // ветвь из нижнего-правого угла
+    var b={segs:[]};
+    branch(b, 1220, 820, 300, -Math.PI+rnd(.35,.55), 1, 5);
+    [a,b].forEach(function(d,i){
+      g.appendChild(el("path",{d:d.segs.join(" "), "stroke-width": i? 7:6, opacity:.95}));
+    });
+    svg.appendChild(g); host.appendChild(svg);
+  })();
+
+  /* ---------- ВОРОНЫ ---------- */
+  var crowLayer = document.querySelector(".crows");
+  function crowSVG(){
+    var s = el("svg",{viewBox:"0 0 40 24", width:"40", height:"24"});
+    s.appendChild(el("ellipse",{cx:20,cy:14,rx:7,ry:4, fill:"currentColor"}));      // тело
+    s.appendChild(el("circle",{cx:27,cy:11,r:3, fill:"currentColor"}));             // голова
+    s.appendChild(el("path",{d:"M30 11 L35 10 L30 12 Z", fill:"currentColor"}));    // клюв
+    var wl = el("path",{class:"wing wing-l", d:"M18 12 Q10 2 2 6 Q10 10 16 14 Z", fill:"currentColor"});
+    var wr = el("path",{class:"wing wing-r", d:"M22 12 Q30 4 38 9 Q30 11 24 14 Z", fill:"currentColor"});
+    s.appendChild(wl); s.appendChild(wr);
+    return s;
+  }
+  var crows=[];
+  function spawnCrow(perched){
+    var c = document.createElement("div");
+    c.className = "crow" + (perched? "" : " flap");
+    c.style.left = rnd(8,86)+"vw";
+    c.style.top  = perched? rnd(58,72)+"vh" : rnd(20,50)+"vh";
+    var sc = rnd(.5,1);
+    c.style.transform = "scale("+sc+")";
+    c.appendChild(crowSVG());
+    crowLayer.appendChild(c);
+    crows.push(c);
+    return c;
+  }
+  // несколько сидящих + пара летящих
+  for(var i=0;i<4;i++) spawnCrow(true);
+  if(!reduce){ for(var j=0;j<2;j++){ var f=spawnCrow(false); f.classList.add("flap"); } }
+
+  function scatterCrows(){
+    crows.forEach(function(c){
+      c.classList.add("flap");
+      c.style.setProperty("--fx", (Math.random()<.5?-1:1)*rnd(20,55)+"vw");
+      // перезапуск
+      void c.offsetWidth;
+      c.classList.add("flee");
+    });
+    setTimeout(function(){
+      crows.forEach(function(c){ c.remove(); });
+      crows=[];
+      for(var i=0;i<4;i++) spawnCrow(true);
+    }, 2700);
+  }
+
+  /* ---------- ЛИСТЬЯ / УГЛИ ---------- */
+  (function motes(){
+    if(reduce) return;
+    var host = document.querySelector(".leaves");
+    var N=16;
+    for(var i=0;i<N;i++){
+      var m=document.createElement("div");
+      m.className="mote";
+      m.style.left=rnd(0,100)+"vw";
+      var dur=rnd(11,22), delay=-rnd(0,dur);
+      m.style.animationDuration=dur+"s";
+      m.style.animationDelay=delay+"s";
+      m.style.setProperty("--drift", rnd(-8,8)+"vw");
+      var sz=rnd(6,13);
+      var s=el("svg",{viewBox:"0 0 12 12", width:sz, height:sz});
+      // лист или уголёк
+      if(Math.random()<.6){
+        s.appendChild(el("path",{d:"M6 0 C9 3 9 9 6 12 C3 9 3 3 6 0 Z", fill:"currentColor", opacity:rnd(.5,.9).toFixed(2)}));
+      } else {
+        s.appendChild(el("circle",{cx:6,cy:6,r:2, fill:"var(--blight-lit)", opacity:.8}));
+        m.style.color="var(--blight)";
+      }
+      m.appendChild(s);
+      host.appendChild(m);
+    }
+  })();
+
+  /* ---------- ПАРАЛЛАКС ---------- */
+  (function parallax(){
+    if(reduce) return;
+    var layers = Array.prototype.slice.call(document.querySelectorAll(".world [data-depth]"));
+    var fg = document.getElementById("foreground");
+    var tx=0, ty=0, cx=0, cy=0;
+    function set(px,py){ tx = px; ty = py; }
+    window.addEventListener("mousemove", function(e){
+      var nx = (e.clientX/window.innerWidth - .5);
+      var ny = (e.clientY/window.innerHeight - .5);
+      set(nx, ny);
+    }, {passive:true});
+    window.addEventListener("deviceorientation", function(e){
+      if(e.gamma==null) return;
+      set(Math.max(-1,Math.min(1,e.gamma/45)), Math.max(-1,Math.min(1,(e.beta-45)/45)));
+    }, {passive:true});
+    (function loop(){
+      cx += (tx-cx)*.06; cy += (ty-cy)*.06;
+      layers.forEach(function(l){
+        var d = parseFloat(l.getAttribute("data-depth"))||0;
+        l.style.setProperty("--tx", (-cx*d).toFixed(2)+"px");
+        l.style.setProperty("--ty", (-cy*d*.6).toFixed(2)+"px");
+      });
+      if(fg){ fg.style.setProperty("--tx",(cx*90).toFixed(2)+"px");
+              fg.style.setProperty("--ty",(cy*60).toFixed(2)+"px"); }
+      requestAnimationFrame(loop);
+    })();
+  })();
+
+  /* ---------- РАСЧЁТ ---------- */
+  var form=document.getElementById("calc");
+  var salaryI=document.getElementById("salary");
+  var hoursI=document.getElementById("hours");
+  var verdict=document.getElementById("verdict");
+  var rateEl=document.getElementById("rate");
+  var epitaph=document.getElementById("epitaph");
+  var stele=document.getElementById("stele");
+
+  function num(r){ if(r==null) return NaN; var c=String(r).replace(/\s/g,"").replace(",","."); return c===""?NaN:Number(c); }
+  function money(v){ return v.toLocaleString("ru-RU",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function epitaphFor(r){
+    if(r<100)  return "За такую плату даже мёртвые не встанут с колен.";
+    if(r<300)  return "Часы утекают, как песок сквозь костяные пальцы.";
+    if(r<700)  return "Достойно живого. Покуда ты ещё дышишь.";
+    if(r<1500) return "Король одобрил бы такую казну.";
+    return "Даже Тёмная Госпожа оценила бы твою цену.";
+  }
+  function reveal(bad, head, body){
+    verdict.classList.toggle("bad", bad);
+    verdict.classList.remove("show"); void verdict.offsetWidth;
+    rateEl.innerHTML = head; epitaph.textContent = body||"";
+    verdict.classList.add("show");
+    stele.classList.remove("cast"); void stele.offsetWidth; stele.classList.add("cast");
+    if(!reduce) scatterCrows();
+    if(navigator.vibrate) navigator.vibrate(bad?[40]:[18,40,18]);
+  }
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    var s=num(salaryI.value), h=num(hoursI.value);
+    if(isNaN(s)||isNaN(h)) return reveal(true, '<span class="num">Назови оба числа.</span>');
+    if(s<0||h<0)           return reveal(true, '<span class="num">Отрицательного времени не бывает.</span>');
+    if(h===0)              return reveal(true, '<span class="num">Ноль часов — ноль ответа.</span>');
+    var r=s/h;
+    reveal(false, '<span class="num">'+money(r)+'</span><span class="unit">золотых в час</span>', epitaphFor(r));
+  });
+
+  /* ---------- ЗВУК ПУСТОШИ (Web Audio, по желанию) ---------- */
+  (function sound(){
+    var rune=document.getElementById("rune");
+    var ctx=null, nodes=null;
+    function start(){
+      ctx = new (window.AudioContext||window.webkitAudioContext)();
+      // коричневый шум = ветер
+      var buf = ctx.createBuffer(1, ctx.sampleRate*4, ctx.sampleRate);
+      var data = buf.getChannelData(0), last=0;
+      for(var i=0;i<data.length;i++){ var w=Math.random()*2-1; data[i]=(last+0.02*w)/1.02; last=data[i]; data[i]*=3.2; }
+      var noise=ctx.createBufferSource(); noise.buffer=buf; noise.loop=true;
+      var lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=520;
+      var ng=ctx.createGain(); ng.gain.value=0.0;
+      // медленное «дыхание» ветра
+      var lfo=ctx.createOscillator(); lfo.frequency.value=0.07;
+      var lfoG=ctx.createGain(); lfoG.gain.value=180;
+      lfo.connect(lfoG); lfoG.connect(lp.frequency);
+      // низкий дрон
+      var drone=ctx.createOscillator(); drone.type="sine"; drone.frequency.value=55;
+      var dg=ctx.createGain(); dg.gain.value=0.0;
+      noise.connect(lp); lp.connect(ng); ng.connect(ctx.destination);
+      drone.connect(dg); dg.connect(ctx.destination);
+      noise.start(); lfo.start(); drone.start();
+      ng.gain.linearRampToValueAtTime(0.16, ctx.currentTime+2);
+      dg.gain.linearRampToValueAtTime(0.05, ctx.currentTime+3);
+      nodes={ctx:ctx, ng:ng, dg:dg};
+    }
+    function stop(){
+      if(!nodes) return;
+      nodes.ng.gain.linearRampToValueAtTime(0, nodes.ctx.currentTime+0.6);
+      nodes.dg.gain.linearRampToValueAtTime(0, nodes.ctx.currentTime+0.6);
+      var c=nodes.ctx; setTimeout(function(){ c.close(); },800); nodes=null;
+    }
+    rune.addEventListener("click", function(){
+      if(rune.classList.contains("on")){ rune.classList.remove("on"); stop(); }
+      else{ rune.classList.add("on"); try{ start(); }catch(e){} }
+    });
+  })();
+})();
+</script>
+</body>
+</html>
